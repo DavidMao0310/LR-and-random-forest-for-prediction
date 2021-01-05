@@ -21,7 +21,7 @@ data['1d_future_close'] = data['Adj_Close'].shift(-1)
 data['1d_close_pct'] = data['Adj_Close'].pct_change(1)
 data['Volume_1d_change'] = data['Volume'].pct_change(1)
 feature_names = ['1d_close_pct', 'Volume_1d_change']
-for n in [14, 30]:
+for n in [14, 30, 100]:
     data['sma' + str(n)] = ta.SMA(data['Adj_Close'].values, timeperiod=n)
     data['rsi' + str(n)] = ta.RSI(data['Adj_Close'].values, timeperiod=n)
     data['ema' + str(n)] = ta.EMA(data['Adj_Close'].values, timeperiod=n)
@@ -43,29 +43,27 @@ data['MACD'] = macd
 data['MACDsignal'] = macdsignal
 feature_names = feature_names + ['ATR', 'ADX', 'MACD', 'MACDsignal']
 data = data.dropna()
-
+print(data.columns)
 ################################################################
 print(data)
 features = data[feature_names]
 targets = pd.DataFrame(data['1d_future_close'])
 
-F_scaled = preprocessing.MinMaxScaler().fit_transform(features)
-features = pd.DataFrame(F_scaled)
-features.columns = feature_names
-T_scaled = preprocessing.MinMaxScaler().fit_transform(targets)
-#targets = pd.DataFrame(T_scaled)
-ttt = pd.DataFrame(T_scaled)
-ttt.columns = ['Adj_Close']
-targets = T_scaled.ravel()  #Change it to 1D array
-total = features.join(ttt)
-#scatter_matrix(total)
-
 
 train_size = int(0.8 * targets.shape[0])
 train_features = features[:train_size]
+train_features = pd.DataFrame(preprocessing.StandardScaler().fit_transform(train_features))
+train_features.columns = feature_names
 train_targets = targets[:train_size]
+train_targets = train_targets.values.ravel()
+
 test_features = features[train_size:]
+test_features = pd.DataFrame(preprocessing.StandardScaler().fit_transform(test_features))
+test_features.columns = feature_names
 test_targets = targets[train_size:]
+test_targets = test_targets.values.ravel()
+
+
 print('Training Features Shape:', train_features.shape)
 print('Training Targets Shape:', train_targets.shape)
 print('Testing Features Shape:', test_features.shape)
@@ -87,6 +85,7 @@ def LM(skmodel, train_features, train_targets ,test_features, test_targets):
     plt.plot(np.arange(xmin, xmax, 0.01), np.arange(xmin, xmax, 0.01), c='k')
     plt.xlabel('actual')
     plt.ylabel('predictions')
+    plt.title('Linear Regression')
     plt.legend()
     plt.show()
 LM(skmodel,train_features, train_targets, test_features, test_targets)
@@ -105,7 +104,7 @@ def DTR(train_features, train_targets, test_features, test_targets):
     print('DTR test', decision_tree.score(test_features, test_targets), '\n')
 
     plt.figure(figsize=(35, 25))
-    tree.plot_tree(decision_tree, filled=True, feature_names=feature_names)
+    tree.plot_tree(decision_tree, filled=True, rounded=True, feature_names=feature_names)
     plt.show()
     train_predictions = decision_tree.predict(train_features)
     test_predictions = decision_tree.predict(test_features)
@@ -114,6 +113,7 @@ def DTR(train_features, train_targets, test_features, test_targets):
     plt.scatter(test_predictions, test_targets, label='test', alpha = 0.6, c='r')
     plt.xlabel('actual')
     plt.ylabel('predictions')
+    plt.title('Decision Tree')
     plt.legend()
     plt.show()
 DTR(train_features, train_targets, test_features, test_targets)
@@ -139,6 +139,7 @@ def RF(train_features, train_targets, test_features, test_targets):
     plt.scatter(test_targets, test_predictions, label='test', alpha = 0.6, c='r')
     plt.xlabel('actual')
     plt.ylabel('predictions')
+    plt.title('Random Forest')
     plt.legend()
     plt.show()
 RF(train_features, train_targets, test_features, test_targets)
@@ -165,6 +166,7 @@ def GB(train_features, train_targets, test_features, test_targets):
     plt.scatter(test_targets, test_predictions, label='test', alpha = 0.6, c='r')
     plt.xlabel('actual')
     plt.ylabel('predictions')
+    plt.title('Gradient Boosting')
     plt.legend()
     plt.show()
 GB(train_features, train_targets, test_features, test_targets)
